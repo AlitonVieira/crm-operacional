@@ -222,6 +222,38 @@ export default function Home() {
     (lead) => lead.prioridade === "followup"
   );
 
+  // Contadores resumidos para o topo da tela
+  // Eles ajudam a dar visão rápida do dia sem poluir a interface
+  const closerSummary = [
+    {
+      label: "Críticos",
+      value: criticalLeads.length,
+    },
+    {
+      label: "Negociação",
+      value: negotiationLeads.length,
+    },
+    {
+      label: "Follow-up",
+      value: followUpLeads.length,
+    },
+  ];
+
+  const sdrSummary = [
+    {
+      label: "Responder agora",
+      value: repliedLeads.length,
+    },
+    {
+      label: "Qualificação",
+      value: qualificationLeads.length,
+    },
+    {
+      label: "Aguardando resposta",
+      value: waitingResponseLeads.length,
+    },
+  ];
+
   // Função responsável por renderizar uma seção da fila
   // Ela recebe o título da seção, a descrição e a lista de leads daquele grupo
   function renderLeadSection(
@@ -363,23 +395,40 @@ export default function Home() {
             </button>
           </div>
 
-          {/*
-            Bloco de resumo do dia
-            Mostra rapidamente o volume de trabalho do usuário
-            Isso ajuda o vendedor a entender prioridade sem pensar muito
+          {/* 
+            Resumo visual do dia
+            Esse bloco muda conforme a visão ativa para reforçar o papel do usuário
           */}
-          <div className="mb-6 rounded-xl bg-slate-50 p-4">
+          <div className="mb-6 rounded-2xl bg-slate-50 p-4">
             <p className="text-sm font-medium text-slate-800">
               {activeView === "closer"
-                ? "Você tem 12 ações hoje"
-                : "Você tem 9 leads para tratar"}
+                ? "Resumo do dia do closer"
+                : "Resumo do dia do SDR"}
             </p>
 
             <p className="mt-1 text-sm text-slate-600">
               {activeView === "closer"
-                ? "3 críticas • 5 negociações • 4 follow-ups"
-                : "3 responderam • 2 para qualificar • 4 aguardando resposta"}
+                ? "Acompanhe negociações, reuniões e follow-ups"
+                : "Priorize respostas rápidas e qualificação"}
             </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {(activeView === "closer" ? closerSummary : sdrSummary).map(
+                (item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl bg-white px-4 py-3 shadow-sm"
+                  >
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      {item.label}
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-slate-900">
+                      {item.value}
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
           </div>
 
           {/*
