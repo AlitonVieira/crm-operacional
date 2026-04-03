@@ -66,11 +66,11 @@ O desenvolvimento será dividido em etapas:
 
 ### 🔹 Fase 1 (MVP)
 
-* tela principal com fila de leads
-* card do lead com ações básicas
-* controle de próxima ação
+* tela principal com fila de leads ✅
+* card do lead com ações básicas ✅
+* controle de próxima ação ✅
 * fluxo SDR → closer
-* histórico simples
+* histórico simples ✅
 
 ### 🔹 Fase 2
 

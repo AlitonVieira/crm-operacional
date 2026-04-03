@@ -1,5 +1,7 @@
 "use client";
+
 import { useState } from "react";
+
 // Lista temporária de leads para montar a interface inicial da fila
 // Neste momento estamos usando dados mockados para visualizar o produto
 const leads = [
@@ -99,7 +101,7 @@ function getPriorityStyles(prioridade: string) {
 
 // Componente principal da página inicial do sistema
 export default function Home() {
-    // Estado responsável pela lista de leads exibida na fila
+  // Estado responsável pela lista de leads exibida na fila
   // Isso permite atualizar status e próximas ações sem recarregar a página
   const [leadList, setLeadList] = useState(leads);
 
@@ -107,8 +109,6 @@ export default function Home() {
   // Começamos com o primeiro lead já selecionado para evitar painel vazio
   const [selectedLead, setSelectedLead] = useState(leads[0]);
 
-  // Função responsável por atualizar o lead selecionado
-  // Ela altera a lista da fila e também o conteúdo exibido no card lateral
   // Função responsável por atualizar o lead selecionado
   // Ela altera a lista da fila e também o conteúdo exibido no card lateral
   function updateSelectedLead(data: {
@@ -134,14 +134,104 @@ export default function Home() {
   // Função responsável por registrar uma nova ação no histórico do lead
   // A nova ação é adicionada no topo da lista para aparecer primeiro no card
   function registerAction(actionLabel: string) {
-    const updatedHistory = [
-      actionLabel,
-      ...selectedLead.historico,
-    ];
+    const updatedHistory = [actionLabel, ...selectedLead.historico];
 
     updateSelectedLead({
       historico: updatedHistory,
     });
+  }
+
+  // Agrupamento dos leads por prioridade
+  // Isso ajuda a transformar a fila em uma visão mais operacional
+  const criticalLeads = leadList.filter((lead) => lead.prioridade === "critica");
+  const negotiationLeads = leadList.filter(
+    (lead) => lead.prioridade === "negociacao"
+  );
+  const followUpLeads = leadList.filter((lead) => lead.prioridade === "followup");
+
+  // Função responsável por renderizar uma seção da fila
+  // Ela recebe o título da seção, a descrição e a lista de leads daquele grupo
+  function renderLeadSection(
+    title: string,
+    description: string,
+    sectionLeads: typeof leadList
+  ) {
+    return (
+      <div className="space-y-4">
+        {/* Cabeçalho da seção */}
+        <div className="flex items-end justify-between border-b border-slate-200 pb-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+            <p className="mt-1 text-sm text-slate-500">{description}</p>
+          </div>
+
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+            {sectionLeads.length}
+          </span>
+        </div>
+
+        {/* Estado vazio da seção */}
+        {sectionLeads.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-300 p-4">
+            <p className="text-sm text-slate-500">
+              Nenhum lead nesta seção no momento.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {sectionLeads.map((lead) => {
+              const priorityStyles = getPriorityStyles(lead.prioridade);
+
+              return (
+                <div
+                  key={lead.id}
+                  onClick={() => setSelectedLead(lead)}
+                  className={`cursor-pointer rounded-xl border bg-white p-4 transition hover:border-slate-300 ${
+                    priorityStyles.borda
+                  } ${selectedLead.id === lead.id ? "ring-2 ring-slate-300" : ""}`}
+                >
+                  {/* 
+                    Barra visual superior para indicar a prioridade do lead
+                    Isso ajuda o usuário a identificar urgência rapidamente
+                  */}
+                  <div
+                    className={`mb-4 h-1 w-16 rounded-full ${priorityStyles.barra}`}
+                  />
+
+                  {/* Linha superior do card: nome, empresa e status */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        {lead.nome}
+                      </h3>
+                      <p className="text-sm text-slate-600">{lead.empresa}</p>
+                    </div>
+
+                    {/* Status do lead com destaque visual de prioridade */}
+                    <div className="flex flex-col items-end gap-2">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${priorityStyles.fundoStatus} ${priorityStyles.textoStatus}`}
+                      >
+                        {priorityStyles.label}
+                      </span>
+
+                      <span className="text-xs text-slate-500">
+                        {lead.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Resumo curto do lead */}
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    {lead.resumo}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -186,62 +276,28 @@ export default function Home() {
             </p>
           </div>
 
-          {/*
-            Área da fila de execução
-            Aqui mostramos os leads em formato de lista para facilitar leitura rápida
+          {/* 
+            Área da fila de execução organizada por grupos
+            Isso ajuda o usuário a entender o dia de trabalho com mais clareza
           */}
-          <div className="space-y-4">
-            {leadList.map((lead) => {
-              const priorityStyles = getPriorityStyles(lead.prioridade);
+          <div className="space-y-8">
+            {renderLeadSection(
+              "Críticos",
+              "Leads que exigem ação imediata",
+              criticalLeads
+            )}
 
-              return (
-                <div
-  key={lead.id}
-  onClick={() => setSelectedLead(lead)}
-  className={`cursor-pointer rounded-xl border bg-white p-4 transition hover:border-slate-300 ${
-    priorityStyles.borda
-  } ${
-    selectedLead.id === lead.id ? "ring-2 ring-slate-300" : ""
-  }`}
->
-                  {/*
-                    Barra visual superior para indicar a prioridade do lead
-                    Isso ajuda o usuário a identificar urgência rapidamente
-                  */}
-                  <div
-                    className={`mb-4 h-1 w-16 rounded-full ${priorityStyles.barra}`}
-                  />
+            {renderLeadSection(
+              "Negociação",
+              "Leads em andamento comercial",
+              negotiationLeads
+            )}
 
-                  {/* Linha superior do card: nome, empresa e status */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-900">
-                        {lead.nome}
-                      </h3>
-                      <p className="text-sm text-slate-600">{lead.empresa}</p>
-                    </div>
-
-                    {/* Status do lead com destaque visual de prioridade */}
-                    <div className="flex flex-col items-end gap-2">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${priorityStyles.fundoStatus} ${priorityStyles.textoStatus}`}
-                      >
-                        {priorityStyles.label}
-                      </span>
-
-                      <span className="text-xs text-slate-500">
-                        {lead.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Resumo curto do lead */}
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    {lead.resumo}
-                  </p>
-                </div>
-              );
-            })}
+            {renderLeadSection(
+              "Follow-up",
+              "Leads que precisam de continuidade",
+              followUpLeads
+            )}
           </div>
         </section>
 
@@ -254,217 +310,214 @@ export default function Home() {
           - visível em telas maiores (desktop)
         */}
         <aside className="hidden w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm lg:block">
-  {/* Cabeçalho do card lateral */}
-  <div className="border-b border-slate-200 pb-4">
-    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-      Lead selecionado
-    </p>
+          {/* Cabeçalho do card lateral */}
+          <div className="border-b border-slate-200 pb-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Lead selecionado
+            </p>
 
-    <h2 className="mt-2 text-xl font-semibold text-slate-900">
-      {selectedLead.nome}
-    </h2>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">
+              {selectedLead.nome}
+            </h2>
 
-    <p className="mt-1 text-sm text-slate-600">{selectedLead.empresa}</p>
-  </div>
-
-  {/* Bloco de status atual */}
-  <div className="mt-6 rounded-xl bg-slate-50 p-4">
-    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-      Status atual
-    </p>
-    <p className="mt-2 text-sm font-medium text-slate-900">
-      {selectedLead.status}
-    </p>
-  </div>
-
-  {/* Bloco de resumo */}
-  <div className="mt-4 rounded-xl bg-slate-50 p-4">
-    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-      Resumo
-    </p>
-    <p className="mt-2 text-sm leading-6 text-slate-700">
-      {selectedLead.resumo}
-    </p>
-  </div>
-
-    {/* Bloco com informações comerciais rápidas */}
-  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-    <div className="rounded-xl bg-slate-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        Proposta
-      </p>
-      <p className="mt-2 text-sm font-medium text-slate-900">
-        {selectedLead.valorProposta}
-      </p>
-    </div>
-
-    <div className="rounded-xl bg-slate-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        Próxima ação
-      </p>
-      <p className="mt-2 text-sm font-medium text-slate-900">
-        {selectedLead.proximaAcao}
-      </p>
-    </div>
-  </div>
-
-  {/* Área reservada para futuras ações rápidas */}
-    {/* 
-    Área de ações rápidas do lead
-    Esse bloco representa o centro de decisão operacional do card
-  */}
-  <div className="mt-4 rounded-xl border border-slate-200 p-4">
-    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-      Ações rápidas
-    </p>
-
-    <div className="mt-4 grid gap-3">
-      {/* Botão para marcar lead como fechado */}
-      <button
-        onClick={() =>
-          updateSelectedLead({
-            status: "Fechado",
-            prioridade: "negociacao",
-            proximaAcao: "Contrato fechado",
-          })
-        }
-        className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
-      >
-        Fechou
-      </button>
-
-      {/* Botão para manter lead em negociação */}
-      <button
-        onClick={() =>
-          updateSelectedLead({
-            status: "Em negociação",
-            prioridade: "negociacao",
-            proximaAcao: "Aguardar retorno da proposta",
-          })
-        }
-        className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-amber-600"
-      >
-        Em negociação
-      </button>
-
-      {/* Botão para marcar que não fechou */}
-      <button
-        onClick={() =>
-          updateSelectedLead({
-            status: "Não fechou",
-            prioridade: "followup",
-            proximaAcao: "Reagendar contato",
-          })
-        }
-        className="rounded-xl bg-rose-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-rose-700"
-      >
-        Não fechou
-      </button>
-    </div>
-
-        {/* Linha de registro rápido de ações */}
-    <div className="mt-4 border-t border-slate-200 pt-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        Registrar ação
-      </p>
-
-      <div className="mt-3 grid grid-cols-3 gap-3">
-        <button
-          onClick={() => registerAction("Mensagem enviada")}
-          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          Mensagem
-        </button>
-
-        <button
-          onClick={() => registerAction("Ligação realizada")}
-          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          Ligação
-        </button>
-
-        <button
-          onClick={() => registerAction("Reunião realizada")}
-          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          Reunião
-        </button>
-      </div>
-    </div>
-
-      {/* Histórico simples do lead */}
-    <div className="mt-4 rounded-xl bg-slate-50 p-4">
-    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-      Histórico
-    </p>
-
-      <div className="mt-3 space-y-3">
-      {selectedLead.historico.map((item, index) => (
-          <div
-          key={`${selectedLead.id}-${index}`}
-          className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
-        >
-          {item}
+            <p className="mt-1 text-sm text-slate-600">{selectedLead.empresa}</p>
           </div>
-      ))}
-      </div>
-    </div>
 
-    {/* Linha de atalhos para follow-up */}
-    <div className="mt-4 border-t border-slate-200 pt-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        Agendar follow-up
-      </p>
+          {/* Bloco de status atual */}
+          <div className="mt-6 rounded-xl bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Status atual
+            </p>
+            <p className="mt-2 text-sm font-medium text-slate-900">
+              {selectedLead.status}
+            </p>
+          </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <button
-          onClick={() =>
-            updateSelectedLead({
-              status: "Follow-up agendado",
-              prioridade: "followup",
-              proximaAcao: "Follow-up amanhã",
-            })
-          }
-          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          Amanhã
-        </button>
+          {/* Bloco de resumo */}
+          <div className="mt-4 rounded-xl bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Resumo
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              {selectedLead.resumo}
+            </p>
+          </div>
 
-        <button
-          onClick={() =>
-            updateSelectedLead({
-              status: "Follow-up agendado",
-              prioridade: "followup",
-              proximaAcao: "Follow-up em 2 dias",
-            })
-          }
-          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          2 dias
-        </button>
+          {/* Bloco com informações comerciais rápidas */}
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Proposta
+              </p>
+              <p className="mt-2 text-sm font-medium text-slate-900">
+                {selectedLead.valorProposta}
+              </p>
+            </div>
 
-        <button
-          onClick={() =>
-            updateSelectedLead({
-              status: "Follow-up agendado",
-              prioridade: "followup",
-              proximaAcao: "Follow-up em 7 dias",
-            })
-          }
-          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-        >
-          7 dias
-        </button>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Próxima ação
+              </p>
+              <p className="mt-2 text-sm font-medium text-slate-900">
+                {selectedLead.proximaAcao}
+              </p>
+            </div>
+          </div>
 
-        <button
-          className="rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-medium text-slate-500"
-        >
-          Definir data
-        </button>
-      </div>
-    </div>
-  </div>
-</aside>
+          {/* 
+            Área de ações rápidas do lead
+            Esse bloco representa o centro de decisão operacional do card
+          */}
+          <div className="mt-4 rounded-xl border border-slate-200 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Ações rápidas
+            </p>
+
+            <div className="mt-4 grid gap-3">
+              {/* Botão para marcar lead como fechado */}
+              <button
+                onClick={() =>
+                  updateSelectedLead({
+                    status: "Fechado",
+                    prioridade: "negociacao",
+                    proximaAcao: "Contrato fechado",
+                  })
+                }
+                className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
+              >
+                Fechou
+              </button>
+
+              {/* Botão para manter lead em negociação */}
+              <button
+                onClick={() =>
+                  updateSelectedLead({
+                    status: "Em negociação",
+                    prioridade: "negociacao",
+                    proximaAcao: "Aguardar retorno da proposta",
+                  })
+                }
+                className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-amber-600"
+              >
+                Em negociação
+              </button>
+
+              {/* Botão para marcar que não fechou */}
+              <button
+                onClick={() =>
+                  updateSelectedLead({
+                    status: "Não fechou",
+                    prioridade: "followup",
+                    proximaAcao: "Reagendar contato",
+                  })
+                }
+                className="rounded-xl bg-rose-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-rose-700"
+              >
+                Não fechou
+              </button>
+            </div>
+
+            {/* Linha de registro rápido de ações */}
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Registrar ação
+              </p>
+
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => registerAction("Mensagem enviada")}
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Mensagem
+                </button>
+
+                <button
+                  onClick={() => registerAction("Ligação realizada")}
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Ligação
+                </button>
+
+                <button
+                  onClick={() => registerAction("Reunião realizada")}
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Reunião
+                </button>
+              </div>
+            </div>
+
+            {/* Linha de atalhos para follow-up */}
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Agendar follow-up
+              </p>
+
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <button
+                  onClick={() =>
+                    updateSelectedLead({
+                      status: "Follow-up agendado",
+                      prioridade: "followup",
+                      proximaAcao: "Follow-up amanhã",
+                    })
+                  }
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  Amanhã
+                </button>
+
+                <button
+                  onClick={() =>
+                    updateSelectedLead({
+                      status: "Follow-up agendado",
+                      prioridade: "followup",
+                      proximaAcao: "Follow-up em 2 dias",
+                    })
+                  }
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  2 dias
+                </button>
+
+                <button
+                  onClick={() =>
+                    updateSelectedLead({
+                      status: "Follow-up agendado",
+                      prioridade: "followup",
+                      proximaAcao: "Follow-up em 7 dias",
+                    })
+                  }
+                  className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  7 dias
+                </button>
+
+                <button className="rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-medium text-slate-500">
+                  Definir data
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Histórico simples do lead */}
+          <div className="mt-4 rounded-xl bg-slate-50 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Histórico
+            </p>
+
+            <div className="mt-3 space-y-3">
+              {selectedLead.historico.map((item, index) => (
+                <div
+                  key={`${selectedLead.id}-${index}`}
+                  className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
     </main>
   );
