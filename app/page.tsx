@@ -109,6 +109,10 @@ export default function Home() {
   // Começamos com o primeiro lead já selecionado para evitar painel vazio
   const [selectedLead, setSelectedLead] = useState(leads[0]);
 
+  // Estado responsável por controlar qual filtro está ativo na fila
+  // Isso permite que o usuário veja apenas o grupo que deseja no momento
+  const [activeFilter, setActiveFilter] = useState("todos");
+
   // Função responsável por atualizar o lead selecionado
   // Ela altera a lista da fila e também o conteúdo exibido no card lateral
   function updateSelectedLead(data: {
@@ -276,28 +280,84 @@ export default function Home() {
             </p>
           </div>
 
+          {/*
+            Área de filtros da fila
+            Esses botões ajudam o usuário a focar no tipo de lead que deseja visualizar
+          */}
+          <div className="mb-6 flex flex-wrap gap-3">
+            <button 
+              onClick={() => setActiveFilter("todos")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${ 
+                activeFilter === "todos"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`} 
+            >  
+              Todos
+            </button>
+            
+            <button
+              onClick={() => setActiveFilter("critica")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                activeFilter === "critica"
+                 ? "bg-slate-900 text-white"
+                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              Críticos
+            </button>
+
+            <button
+              onClick={() => setActiveFilter("negociacao")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                activeFilter === "negociacao"
+                 ? "bg-slate-900 text-white"
+                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              Negociação
+            </button>
+
+            <button
+              onClick={() => setActiveFilter("followup")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                activeFilter === "followup"
+                 ? "bg-slate-900 text-white"
+                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              Follow-Up
+            </button>
+          </div>
+
           {/* 
             Área da fila de execução organizada por grupos
             Isso ajuda o usuário a entender o dia de trabalho com mais clareza
           */}
+
           <div className="space-y-8">
-            {renderLeadSection(
-              "Críticos",
-              "Leads que exigem ação imediata",
-              criticalLeads
-            )}
+            {(activeFilter === "todos" || activeFilter === "critica") &&
+              renderLeadSection(
+                "críticos",
+                "Leads que exigem ação imediata",
+                criticalLeads
+              )}
 
-            {renderLeadSection(
-              "Negociação",
-              "Leads em andamento comercial",
-              negotiationLeads
-            )}
+            {(activeFilter === "todos" || activeFilter === "negociacao") &&
+              renderLeadSection(
+                "Negociação",
+                "Leads em andamento comercial",
+                negotiationLeads
+              )}
+          </div>
 
-            {renderLeadSection(
+          <div className="space-y-8">
+            {(activeFilter === "todos" || activeFilter === "followup") && 
+             renderLeadSection(
               "Follow-up",
               "Leads que precisam de continuidade",
               followUpLeads
-            )}
+             )}        
           </div>
         </section>
 
