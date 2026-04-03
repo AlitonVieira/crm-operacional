@@ -113,6 +113,10 @@ export default function Home() {
   // Isso permite que o usuário veja apenas o grupo que deseja no momento
   const [activeFilter, setActiveFilter] = useState("todos");
 
+  //Estado responsável por alternar entre a visão do closer e a visão do SDR
+  //Isso ajuda a validar dois fluxos do produto sem criar outra página agora
+  const [activeView, setActiveView] = useState("closer");
+
   // Função responsável por atualizar o lead selecionado
   // Ela altera a lista da fila e também o conteúdo exibido no card lateral
   function updateSelectedLead(data: {
@@ -152,6 +156,12 @@ export default function Home() {
     (lead) => lead.prioridade === "negociacao"
   );
   const followUpLeads = leadList.filter((lead) => lead.prioridade === "followup");
+
+  // Grupos temporários da visão SDR
+  // Neste momento vamos reutilizar os mesmos leads para validar a experiência visual
+  const repliedLeads = criticalLeads;
+  const qualificationLeads = negotiationLeads;
+  const waitingResponseLeads = followUpLeads;
 
   // Função responsável por renderizar uma seção da fila
   // Ela recebe o título da seção, a descrição e a lista de leads daquele grupo
@@ -266,6 +276,34 @@ export default function Home() {
             </p>
           </header>
 
+          {/* 
+            Seletor de visão da tela
+            Permite alternar entre o fluxo do closer e o fluxo do SDR
+          */}
+          <div className="mb-6 flex flex-wrap gap-3">
+            <button
+              onClick={() => setActiveView("closer")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                activeView === "closer"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              Visão Closer
+            </button>
+
+            <button
+              onClick={() => setActiveView("sdr")}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                activeView === "sdr"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              Visão SDR
+            </button>
+          </div>
+
           {/*
             Bloco de resumo do dia
             Mostra rapidamente o volume de trabalho do usuário
@@ -273,10 +311,15 @@ export default function Home() {
           */}
           <div className="mb-6 rounded-xl bg-slate-50 p-4">
             <p className="text-sm font-medium text-slate-800">
-              Você tem 12 ações hoje
+              {activeView === "closer"
+                ? "Você tem 12 ações hoje"
+                : "Você tem 9 leads para tratar"}
             </p>
+
             <p className="mt-1 text-sm text-slate-600">
-              3 críticas • 5 negociações • 4 follow-ups
+              {activeView === "closer"
+                ? "3 críticas • 5 negociações • 4 follow-ups"
+                : "3 responderam • 2 para qualificar • 4 aguardando resposta"}
             </p>
           </div>
 
@@ -336,28 +379,53 @@ export default function Home() {
           */}
 
           <div className="space-y-8">
-            {(activeFilter === "todos" || activeFilter === "critica") &&
-              renderLeadSection(
-                "críticos",
-                "Leads que exigem ação imediata",
-                criticalLeads
-              )}
+            {activeView === "closer" ? (
+              <>
+                {(activeFilter === "todos" || activeFilter === "critica") &&
+                  renderLeadSection(
+                    "Críticos",
+                    "Leads que exigem ação imediata",
+                    criticalLeads
+                  )}
 
-            {(activeFilter === "todos" || activeFilter === "negociacao") &&
-              renderLeadSection(
-                "Negociação",
-                "Leads em andamento comercial",
-                negotiationLeads
-              )}
-          </div>
+                {(activeFilter === "todos" || activeFilter === "negociacao") &&
+                  renderLeadSection(
+                    "Negociação",
+                    "Leads em andamento comercial",
+                    negotiationLeads
+                  )}
 
-          <div className="space-y-8">
-            {(activeFilter === "todos" || activeFilter === "followup") && 
-             renderLeadSection(
-              "Follow-up",
-              "Leads que precisam de continuidade",
-              followUpLeads
-             )}        
+                {(activeFilter === "todos" || activeFilter === "followup") &&
+                  renderLeadSection(
+                    "Follow-up",
+                    "Leads que precisam de continuidade",
+                    followUpLeads
+                  )}
+              </>
+            ) : (
+              <>
+                {(activeFilter === "todos" || activeFilter === "critica") &&
+                  renderLeadSection(
+                    "Responder agora",
+                    "Leads que responderam e exigem ação rápida",
+                    repliedLeads
+                  )}
+
+                {(activeFilter === "todos" || activeFilter === "negociacao") &&
+                  renderLeadSection(
+                    "Qualificação",
+                    "Leads que precisam avançar na conversa",
+                    qualificationLeads
+                  )}
+
+                {(activeFilter === "todos" || activeFilter === "followup") &&
+                  renderLeadSection(
+                    "Aguardando resposta",
+                    "Leads que precisam de continuidade do SDR",
+                    waitingResponseLeads
+                  )}
+              </>
+            )}
           </div>
         </section>
 
