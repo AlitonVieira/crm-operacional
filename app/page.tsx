@@ -18,6 +18,9 @@ const leads = [
     faturamento: "R$ 80k/mês",
     objetivo: "Aumentar geração de leads",
     momento: "Agora",
+    responsavel: "closer",
+    resumoSdr:
+      "Clínica estética, fatura cerca de R$ 80k/mês, quer aumentar leads e demonstrou urgência para começar agora.",
     historico: [
       "Lead entrou pelo formulário",
       "SDR fez o primeiro contato",
@@ -37,6 +40,9 @@ const leads = [
     faturamento: "R$ 50k/mês",
     objetivo: "Melhorar previsibilidade comercial",
     momento: "Em breve",
+    responsavel: "closer",
+    resumoSdr:
+      "Agência de marketing com faturamento em torno de R$ 50k/mês, busca previsibilidade comercial e demonstrou interesse em avançar em breve.",
     historico: [
       "Lead respondeu com interesse",
       "Reunião agendada",
@@ -56,6 +62,9 @@ const leads = [
     faturamento: "R$ 35k/mês",
     objetivo: "Gerar mais oportunidades qualificadas",
     momento: "Agora",
+    responsavel: "closer",
+    resumoSdr:
+      "Estúdio de arquitetura, faturamento aproximado de R$ 35k/mês, quer gerar mais oportunidades qualificadas e já avançou para negociação.",
     historico: [
       "Lead qualificado pelo SDR",
       "Reunião realizada",
@@ -75,6 +84,9 @@ const leads = [
     faturamento: "R$ 60k/mês",
     objetivo: "Atrair mais pacientes particulares",
     momento: "Só pesquisando",
+    responsavel: "sdr",
+    resumoSdr:
+      "Clínica odontológica com faturamento em torno de R$ 60k/mês, interesse inicial em atrair mais pacientes particulares, ainda em fase de pesquisa.",
     historico: [
       "Lead entrou pelo Instagram",
       "SDR fez contato inicial",
@@ -140,6 +152,8 @@ export default function Home() {
     prioridade?: string;
     proximaAcao?: string;
     historico?: string[];
+    responsavel?: string;
+    resumoSdr?: string;
   }) {
     const updatedLead = {
       ...selectedLead,
@@ -165,19 +179,48 @@ export default function Home() {
     });
   }
 
-  // Agrupamento dos leads por prioridade
-  // Isso ajuda a transformar a fila em uma visão mais operacional
-  const criticalLeads = leadList.filter((lead) => lead.prioridade === "critica");
-  const negotiationLeads = leadList.filter(
+  // Função responsável por transferir o lead do SDR para o closer
+  // Ela muda o responsável e monta um resumo mais claro para continuidade da venda
+  function transferLeadToCloser() {
+    const generatedSummary = `${selectedLead.tipoNegocio}, fatura ${selectedLead.faturamento}, quer ${selectedLead.objetivo.toLowerCase()} e está no momento: ${selectedLead.momento.toLowerCase()}.`;
+
+    updateSelectedLead({
+      status: "Reunião agendada",
+      prioridade: "critica",
+      proximaAcao: "Lead transferido para o closer",
+      historico: [
+        "Lead transferido do SDR para o closer",
+        ...selectedLead.historico,
+      ],
+      // Os campos abaixo são adicionais e serão mesclados no objeto
+      ...( {
+        responsavel: "closer",
+        resumoSdr: generatedSummary,
+      } as Partial<typeof selectedLead> ),
+    });
+  }
+
+  // Leads que pertencem ao closer
+  const closerLeads = leadList.filter((lead) => lead.responsavel === "closer");
+
+  // Leads que pertencem ao SDR
+  const sdrLeads = leadList.filter((lead) => lead.responsavel === "sdr");
+
+  // Agrupamento da visão do closer
+  const criticalLeads = closerLeads.filter((lead) => lead.prioridade === "critica");
+  const negotiationLeads = closerLeads.filter(
     (lead) => lead.prioridade === "negociacao"
   );
-  const followUpLeads = leadList.filter((lead) => lead.prioridade === "followup");
+  const followUpLeads = closerLeads.filter((lead) => lead.prioridade === "followup");
 
-  // Grupos temporários da visão SDR
-  // Neste momento vamos reutilizar os mesmos leads para validar a experiência visual
-  const repliedLeads = criticalLeads;
-  const qualificationLeads = negotiationLeads;
-  const waitingResponseLeads = followUpLeads;
+  // Agrupamento da visão do SDR
+  const repliedLeads = sdrLeads.filter((lead) => lead.prioridade === "critica");
+  const qualificationLeads = sdrLeads.filter(
+    (lead) => lead.prioridade === "negociacao"
+  );
+  const waitingResponseLeads = sdrLeads.filter(
+    (lead) => lead.prioridade === "followup"
+  );
 
   // Função responsável por renderizar uma seção da fila
   // Ela recebe o título da seção, a descrição e a lista de leads daquele grupo
@@ -465,6 +508,10 @@ export default function Home() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-600">{selectedLead.empresa}</p>
+            <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+              Responsável atual: {selectedLead.responsavel}
+            </p>
+            
           </div>
 
           {/* Bloco de status atual */}
@@ -486,6 +533,18 @@ export default function Home() {
               {selectedLead.resumo}
             </p>
           </div>
+
+           {/* Bloco de continuidade SDR -> closer */}
+          {activeView === "closer" && selectedLead.resumoSdr && (
+            <div className="mt-4 rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Resumo do SDR
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                {selectedLead.resumoSdr}
+              </p>
+            </div>
+          )}
 
           {/* 
             Bloco dinâmico do card
@@ -692,13 +751,7 @@ export default function Home() {
               <>
                 <div className="mt-4 grid gap-3">
                   <button
-                    onClick={() =>
-                      updateSelectedLead({
-                        status: "Reunião agendada",
-                        prioridade: "critica",
-                        proximaAcao: "Lead transferido para o closer",
-                      })
-                    }
+                    onClick={transferLeadToCloser}
                     className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700"
                   >
                     Agendar reunião
