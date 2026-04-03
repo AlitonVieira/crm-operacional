@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // Lista temporária de leads para montar a interface inicial da fila
 // Neste momento estamos usando dados mockados para visualizar o produto
@@ -145,6 +145,21 @@ export default function Home() {
   //Isso ajuda a validar dois fluxos do produto sem criar outra página agora
   const [activeView, setActiveView] = useState("closer");
 
+  // Estado responsável por mostrar uma mensagem temporária de feedback
+  // Isso ajuda o usuário a perceber quando uma transferência foi concluída
+  const [transferMessage, setTransferMessage] = useState("");
+
+  // Efeito responsável por limpar a mensagem de transferência após alguns segundos
+  useEffect(() => {
+    if (!transferMessage) return;
+
+    const timer = setTimeout(() => {
+      setTransferMessage("");
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [transferMessage]);
+
   // Função responsável por atualizar o lead selecionado
   // Ela altera a lista da fila e também o conteúdo exibido no card lateral
   function updateSelectedLead(data: {
@@ -179,25 +194,66 @@ export default function Home() {
     });
   }
 
-  // Função responsável por transferir o lead do SDR para o closer
-  // Ela muda o responsável e monta um resumo mais claro para continuidade da venda
-  function transferLeadToCloser() {
-    const generatedSummary = `${selectedLead.tipoNegocio}, fatura ${selectedLead.faturamento}, quer ${selectedLead.objetivo.toLowerCase()} e está no momento: ${selectedLead.momento.toLowerCase()}.`;
+    // Função responsável por gerar uma leitura simples de prontidão do lead
+  // Isso ajuda o SDR a entender rapidamente se o lead parece pronto para avançar
+  function getLeadReadiness() {
+    if (
+      selectedLead.momento === "Agora" &&
+      selectedLead.faturamento !== "Ainda não enviada"
+    ) {
+      return {
+        label: "Alto potencial",
+        bg: "bg-emerald-100",
+        text: "text-emerald-700",
+      };
+    }
 
-    updateSelectedLead({
+    if (selectedLead.momento === "Em breve") {
+      return {
+        label: "Médio potencial",
+        bg: "bg-amber-100",
+        text: "text-amber-700",
+      };
+    }
+
+    return {
+      label: "Em observação",
+      bg: "bg-slate-100",
+      text: "text-slate-700",
+    };
+  }
+
+  // Função responsável por transferir o lead do SDR para o closer
+  // Ela muda o responsável, gera resumo e exibe um feedback visual de sucesso
+  function transferLeadToCloser() {
+    const updatedLead = {
+      ...selectedLead,
       status: "Reunião agendada",
       prioridade: "critica",
       proximaAcao: "Lead transferido para o closer",
+      responsavel: "closer",
+      resumoSdr: `${selectedLead.tipoNegocio}, fatura ${selectedLead.faturamento}, quer ${selectedLead.objetivo.toLowerCase()} e está no momento: ${selectedLead.momento.toLowerCase()}.`,
       historico: [
-        "Lead transferido do SDR para o closer",
+        "SDR agendou reunião e transferiu o lead para o closer",
         ...selectedLead.historico,
       ],
-      // Os campos abaixo são adicionais e serão mesclados no objeto
-      ...( {
-        responsavel: "closer",
-        resumoSdr: generatedSummary,
-      } as Partial<typeof selectedLead> ),
-    });
+    };
+
+    setSelectedLead(updatedLead);
+
+    setLeadList((currentLeads) =>
+      currentLeads.map((lead) =>
+        lead.id === selectedLead.id ? updatedLead : lead
+      )
+    );
+
+    // Troca automaticamente para a visão do closer
+    setActiveView("closer");
+
+    // Exibe mensagem temporária de confirmação
+    setTransferMessage(
+      `Lead ${selectedLead.nome} transferido com sucesso para o closer.`
+    );
   }
 
   // Leads que pertencem ao closer
@@ -253,6 +309,9 @@ export default function Home() {
       value: waitingResponseLeads.length,
     },
   ];
+
+    // Resultado visual da prontidão do lead selecionado
+  const leadReadiness = getLeadReadiness();
 
   // Função responsável por renderizar uma seção da fila
   // Ela recebe o título da seção, a descrição e a lista de leads daquele grupo
@@ -366,6 +425,18 @@ export default function Home() {
               Sistema de execução comercial
             </p>
           </header>
+
+          {/* 
+            Feedback visual temporário para ações importantes do fluxo
+            Neste caso, usamos para destacar a transferência SDR -> closer
+          */}
+          {transferMessage && (
+            <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-sm font-medium text-emerald-700">
+                {transferMessage}
+              </p>
+            </div>
+          )}
 
           {/* 
             Seletor de visão da tela
@@ -583,13 +654,20 @@ export default function Home() {
             </p>
           </div>
 
-           {/* Bloco de continuidade SDR -> closer */}
+          {/* Passagem de bastão clara */}
           {activeView === "closer" && selectedLead.resumoSdr && (
-            <div className="mt-4 rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Resumo do SDR
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-700">
+            <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-sky-700">
+                  Resumo do SDR
+                </p>
+
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
+                  Recebido pelo closer
+                </span>
+              </div>
+
+              <p className="mt-3 text-sm leading-6 text-slate-700">
                 {selectedLead.resumoSdr}
               </p>
             </div>
@@ -620,41 +698,63 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div className="rounded-xl bg-slate-50 p-4">
+            <div className="mt-4 space-y-4">
+              {/* Indicador de prontidão do lead */}
+              <div className="rounded-xl border border-slate-200 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Tipo de negócio
+                  Prontidão para reunião
                 </p>
-                <p className="mt-2 text-sm font-medium text-slate-900">
-                  {selectedLead.tipoNegocio}
-                </p>
+
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-600">
+                    Leitura rápida baseada no momento e nos dados já coletados.
+                  </p>
+
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${leadReadiness.bg} ${leadReadiness.text}`}
+                  >
+                    {leadReadiness.label}
+                  </span>
+                </div>
               </div>
 
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Faturamento
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-900">
-                  {selectedLead.faturamento}
-                </p>
-              </div>
+              {/* Informações principais de qualificação */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Tipo de negócio
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-slate-900">
+                    {selectedLead.tipoNegocio}
+                  </p>
+                </div>
 
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Objetivo
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-900">
-                  {selectedLead.objetivo}
-                </p>
-              </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Faturamento
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-slate-900">
+                    {selectedLead.faturamento}
+                  </p>
+                </div>
 
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Momento
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-900">
-                  {selectedLead.momento}
-                </p>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Objetivo principal
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-slate-900">
+                    {selectedLead.objetivo}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Momento do lead
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-slate-900">
+                    {selectedLead.momento}
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -799,13 +899,15 @@ export default function Home() {
             ) : (
               <>
                 <div className="mt-4 grid gap-3">
+                  {/* Ação principal do SDR */}
                   <button
                     onClick={transferLeadToCloser}
                     className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700"
                   >
-                    Agendar reunião
+                    Agendar reunião com o closer
                   </button>
 
+                  {/* Ação secundária: lead ainda precisa de mais avanço */}
                   <button
                     onClick={() =>
                       updateSelectedLead({
@@ -814,11 +916,12 @@ export default function Home() {
                         proximaAcao: "Continuar conversa com o lead",
                       })
                     }
-                    className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-amber-600"
+                    className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
                   >
-                    Continuar conversa
+                    Continuar qualificação
                   </button>
 
+                  {/* Ação de saída do fluxo */}
                   <button
                     onClick={() =>
                       updateSelectedLead({
@@ -827,9 +930,9 @@ export default function Home() {
                         proximaAcao: "Sem próxima ação",
                       })
                     }
-                    className="rounded-xl bg-rose-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-rose-700"
+                    className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
                   >
-                    Desqualificar
+                    Desqualificar lead
                   </button>
                 </div>
 
