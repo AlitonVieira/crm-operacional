@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type {
+  Lead,
+  LeadFilter,
+  LeadReadiness,
+  LeadUpdateData,
+  LeadView,
+} from "@/types/lead";
 
 // Lista temporária de leads para montar a interface inicial da fila
 // Neste momento estamos usando dados mockados para visualizar o produto
-const leads = [
+const leads: Lead[] = [
   {
     id: 1,
     nome: "João Silva",
@@ -131,46 +138,28 @@ function getPriorityStyles(prioridade: string) {
 export default function Home() {
   // Estado responsável pela lista de leads exibida na fila
   // Isso permite atualizar status e próximas ações sem recarregar a página
-  const [leadList, setLeadList] = useState(leads);
+  const [leadList, setLeadList] = useState<Lead[]>(leads);
 
   // Estado responsável por guardar qual lead está selecionado na fila
   // Começamos com o primeiro lead já selecionado para evitar painel vazio
-  const [selectedLead, setSelectedLead] = useState(leads[0]);
+  const [selectedLead, setSelectedLead] = useState<Lead>(leads[0]);
 
   // Estado responsável por controlar qual filtro está ativo na fila
   // Isso permite que o usuário veja apenas o grupo que deseja no momento
-  const [activeFilter, setActiveFilter] = useState("todos");
+  const [activeFilter, setActiveFilter] = useState<LeadFilter>("todos");
 
-  //Estado responsável por alternar entre a visão do closer e a visão do SDR
-  //Isso ajuda a validar dois fluxos do produto sem criar outra página agora
-  const [activeView, setActiveView] = useState("closer");
+  // Estado responsável por alternar entre a visão do closer e a visão do SDR
+  // Isso ajuda a validar dois fluxos do produto sem criar outra página agora
+  const [activeView, setActiveView] = useState<LeadView>("closer");
 
   // Estado responsável por mostrar uma mensagem temporária de feedback
   // Isso ajuda o usuário a perceber quando uma transferência foi concluída
   const [transferMessage, setTransferMessage] = useState("");
 
-  // Efeito responsável por limpar a mensagem de transferência após alguns segundos
-  useEffect(() => {
-    if (!transferMessage) return;
-
-    const timer = setTimeout(() => {
-      setTransferMessage("");
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [transferMessage]);
-
   // Função responsável por atualizar o lead selecionado
   // Ela altera a lista da fila e também o conteúdo exibido no card lateral
-  function updateSelectedLead(data: {
-    status?: string;
-    prioridade?: string;
-    proximaAcao?: string;
-    historico?: string[];
-    responsavel?: string;
-    resumoSdr?: string;
-  }) {
-    const updatedLead = {
+  function updateSelectedLead(data: LeadUpdateData) {
+    const updatedLead: Lead = {
       ...selectedLead,
       ...data,
     };
@@ -194,9 +183,9 @@ export default function Home() {
     });
   }
 
-    // Função responsável por gerar uma leitura simples de prontidão do lead
+  // Função responsável por gerar uma leitura simples de prontidão do lead
   // Isso ajuda o SDR a entender rapidamente se o lead parece pronto para avançar
-  function getLeadReadiness() {
+  function getLeadReadiness(): LeadReadiness {
     if (
       selectedLead.momento === "Agora" &&
       selectedLead.faturamento !== "Ainda não enviada"
@@ -226,7 +215,7 @@ export default function Home() {
   // Função responsável por transferir o lead do SDR para o closer
   // Ela muda o responsável, gera resumo e exibe um feedback visual de sucesso
   function transferLeadToCloser() {
-    const updatedLead = {
+    const updatedLead: Lead = {
       ...selectedLead,
       status: "Reunião agendada",
       prioridade: "critica",
@@ -247,10 +236,8 @@ export default function Home() {
       )
     );
 
-    // Troca automaticamente para a visão do closer
     setActiveView("closer");
 
-    // Exibe mensagem temporária de confirmação
     setTransferMessage(
       `Lead ${selectedLead.nome} transferido com sucesso para o closer.`
     );
@@ -281,48 +268,65 @@ export default function Home() {
   // Contadores resumidos para o topo da tela
   // Eles ajudam a dar visão rápida do dia sem poluir a interface
   const closerSummary = [
-    {
-      label: "Críticos",
-      value: criticalLeads.length,
-    },
-    {
-      label: "Negociação",
-      value: negotiationLeads.length,
-    },
-    {
-      label: "Follow-up",
-      value: followUpLeads.length,
-    },
+    { label: "Críticos", value: criticalLeads.length },
+    { label: "Negociação", value: negotiationLeads.length },
+    { label: "Follow-up", value: followUpLeads.length },
   ];
 
   const sdrSummary = [
-    {
-      label: "Responder agora",
-      value: repliedLeads.length,
-    },
-    {
-      label: "Qualificação",
-      value: qualificationLeads.length,
-    },
-    {
-      label: "Aguardando resposta",
-      value: waitingResponseLeads.length,
-    },
+    { label: "Responder agora", value: repliedLeads.length },
+    { label: "Qualificação", value: qualificationLeads.length },
+    { label: "Aguardando resposta", value: waitingResponseLeads.length },
   ];
 
-    // Resultado visual da prontidão do lead selecionado
+  // Resultado visual da prontidão do lead selecionado
   const leadReadiness = getLeadReadiness();
+
+  // Lista de leads atualmente visível de acordo com a visão ativa
+  // Isso ajuda a manter o card lateral coerente com a fila mostrada na tela
+  const visibleLeads = activeView === "closer" ? closerLeads : sdrLeads;
+
+  // Verifica se existe um lead selecionado válido dentro da visão atual
+  const hasVisibleSelectedLead = visibleLeads.some(
+    (lead) => lead.id === selectedLead.id
+  );
+
+  // Efeito responsável por limpar a mensagem de transferência após alguns segundos
+  useEffect(() => {
+    if (!transferMessage) return;
+
+    const timer = setTimeout(() => {
+      setTransferMessage("");
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [transferMessage]);
+
+  // Mantém o lead selecionado coerente com a visão ativa
+  // Se o lead atual não existir na fila visível, o sistema seleciona o primeiro disponível
+  useEffect(() => {
+    if (visibleLeads.length === 0) {
+      return;
+    }
+
+    const selectedLeadStillVisible = visibleLeads.some(
+      (lead) => lead.id === selectedLead.id
+    );
+
+    if (!selectedLeadStillVisible) {
+      setSelectedLead(visibleLeads[0]);
+    }
+  }, [activeView, visibleLeads, selectedLead.id]);
 
   // Função responsável por renderizar uma seção da fila
   // Ela recebe o título da seção, a descrição e a lista de leads daquele grupo
   function renderLeadSection(
     title: string,
     description: string,
-    sectionLeads: typeof leadList
+    sectionLeads: Lead[]
   ) {
     return (
       <div className="space-y-4">
-        {/* Cabeçalho da seção */}
         <div className="flex items-end justify-between border-b border-slate-200 pb-3">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
@@ -334,7 +338,6 @@ export default function Home() {
           </span>
         </div>
 
-        {/* Estado vazio da seção */}
         {sectionLeads.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 p-4">
             <p className="text-sm text-slate-500">
@@ -354,15 +357,10 @@ export default function Home() {
                     priorityStyles.borda
                   } ${selectedLead.id === lead.id ? "ring-2 ring-slate-300" : ""}`}
                 >
-                  {/* 
-                    Barra visual superior para indicar a prioridade do lead
-                    Isso ajuda o usuário a identificar urgência rapidamente
-                  */}
                   <div
                     className={`mb-4 h-1 w-16 rounded-full ${priorityStyles.barra}`}
                   />
 
-                  {/* Linha superior do card: nome, empresa e status */}
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-base font-semibold text-slate-900">
@@ -371,7 +369,6 @@ export default function Home() {
                       <p className="text-sm text-slate-600">{lead.empresa}</p>
                     </div>
 
-                    {/* Status do lead com destaque visual de prioridade */}
                     <div className="flex flex-col items-end gap-2">
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-medium ${priorityStyles.fundoStatus} ${priorityStyles.textoStatus}`}
@@ -385,7 +382,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Resumo curto do lead */}
                   <p className="mt-3 text-sm leading-6 text-slate-600">
                     {lead.resumo}
                   </p>
@@ -399,37 +395,19 @@ export default function Home() {
   }
 
   return (
-    // Container principal ocupando toda a altura da tela
-    // bg-slate-100 cria um fundo leve para não cansar visualmente
     <main className="min-h-screen bg-slate-100">
-      {/*
-        Container centralizado da aplicação
-        max-w-7xl limita largura para melhor leitura
-        flex permite dividir tela em duas áreas (fila + card)
-      */}
       <div className="mx-auto flex min-h-screen max-w-7xl gap-6 p-6">
-        {/*
-          SEÇÃO PRINCIPAL (lado esquerdo)
-          Aqui ficará a FILA DE EXECUÇÃO (coração do sistema)
-        */}
         <section className="flex-1 rounded-2xl bg-white p-6 shadow-sm">
-          {/* Cabeçalho da aplicação */}
           <header className="mb-6 border-b border-slate-200 pb-4">
-            {/* Título principal */}
             <h1 className="text-2xl font-bold text-slate-900">
               CRM Operacional
             </h1>
 
-            {/* Descrição curta do sistema */}
             <p className="mt-2 text-sm text-slate-600">
               Sistema de execução comercial
             </p>
           </header>
 
-          {/* 
-            Feedback visual temporário para ações importantes do fluxo
-            Neste caso, usamos para destacar a transferência SDR -> closer
-          */}
           {transferMessage && (
             <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
               <p className="text-sm font-medium text-emerald-700">
@@ -438,10 +416,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* 
-            Seletor de visão da tela
-            Permite alternar entre o fluxo do closer e o fluxo do SDR
-          */}
           <div className="mb-6 flex flex-wrap gap-3">
             <button
               onClick={() => setActiveView("closer")}
@@ -466,21 +440,17 @@ export default function Home() {
             </button>
           </div>
 
-          {/* 
-            Resumo visual do dia
-            Esse bloco muda conforme a visão ativa para reforçar o papel do usuário
-          */}
           <div className="mb-6 rounded-2xl bg-slate-50 p-4">
             <p className="text-sm font-medium text-slate-800">
               {activeView === "closer"
-                ? "Resumo do dia do closer"
-                : "Resumo do dia do SDR"}
+                ? "Prioridades do Closer"
+                : "Prioridades do SDR"}
             </p>
 
             <p className="mt-1 text-sm text-slate-600">
               {activeView === "closer"
-                ? "Acompanhe negociações, reuniões e follow-ups"
-                : "Priorize respostas rápidas e qualificação"}
+                ? "Foque no que está mais perto de fechar ou exige continuidade."
+                : "Responda rápido, qualifique bem e passe só o que faz sentido."}
             </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -502,28 +472,24 @@ export default function Home() {
             </div>
           </div>
 
-          {/*
-            Área de filtros da fila
-            Esses botões ajudam o usuário a focar no tipo de lead que deseja visualizar
-          */}
           <div className="mb-6 flex flex-wrap gap-3">
-            <button 
+            <button
               onClick={() => setActiveFilter("todos")}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${ 
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                 activeFilter === "todos"
                   ? "bg-slate-900 text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`} 
-            >  
+              }`}
+            >
               Todos
             </button>
-            
+
             <button
               onClick={() => setActiveFilter("critica")}
               className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                 activeFilter === "critica"
-                 ? "bg-slate-900 text-white"
-                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
               Críticos
@@ -533,8 +499,8 @@ export default function Home() {
               onClick={() => setActiveFilter("negociacao")}
               className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                 activeFilter === "negociacao"
-                 ? "bg-slate-900 text-white"
-                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
               Negociação
@@ -544,40 +510,35 @@ export default function Home() {
               onClick={() => setActiveFilter("followup")}
               className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                 activeFilter === "followup"
-                 ? "bg-slate-900 text-white"
-                 : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
             >
-              Follow-Up
+              Follow-up
             </button>
           </div>
-
-          {/* 
-            Área da fila de execução organizada por grupos
-            Isso ajuda o usuário a entender o dia de trabalho com mais clareza
-          */}
 
           <div className="space-y-8">
             {activeView === "closer" ? (
               <>
                 {(activeFilter === "todos" || activeFilter === "critica") &&
                   renderLeadSection(
-                    "Críticos",
-                    "Leads que exigem ação imediata",
+                    "Ação imediata",
+                    "Leads que pedem atenção agora",
                     criticalLeads
                   )}
 
                 {(activeFilter === "todos" || activeFilter === "negociacao") &&
                   renderLeadSection(
-                    "Negociação",
-                    "Leads em andamento comercial",
+                    "Em negociação",
+                    "Oportunidades em andamento comercial",
                     negotiationLeads
                   )}
 
                 {(activeFilter === "todos" || activeFilter === "followup") &&
                   renderLeadSection(
-                    "Follow-up",
-                    "Leads que precisam de continuidade",
+                    "Continuidade",
+                    "Leads que precisam de próximo passo",
                     followUpLeads
                   )}
               </>
@@ -586,21 +547,21 @@ export default function Home() {
                 {(activeFilter === "todos" || activeFilter === "critica") &&
                   renderLeadSection(
                     "Responder agora",
-                    "Leads que responderam e exigem ação rápida",
+                    "Leads engajados que pedem resposta rápida",
                     repliedLeads
                   )}
 
                 {(activeFilter === "todos" || activeFilter === "negociacao") &&
                   renderLeadSection(
-                    "Qualificação",
-                    "Leads que precisam avançar na conversa",
+                    "Em qualificação",
+                    "Leads que ainda precisam de avanço e contexto",
                     qualificationLeads
                   )}
 
                 {(activeFilter === "todos" || activeFilter === "followup") &&
                   renderLeadSection(
-                    "Aguardando resposta",
-                    "Leads que precisam de continuidade do SDR",
+                    "Aguardando retorno",
+                    "Leads que precisam de nova tentativa do SDR",
                     waitingResponseLeads
                   )}
               </>
@@ -608,383 +569,376 @@ export default function Home() {
           </div>
         </section>
 
-        {/*
-          SEÇÃO LATERAL (lado direito)
-          Aqui ficará o CARD DO LEAD
-
-          hidden lg:block:
-          - escondido em telas pequenas (mobile)
-          - visível em telas maiores (desktop)
-        */}
         <aside className="hidden w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm lg:block">
-          {/* Cabeçalho do card lateral */}
-          <div className="border-b border-slate-200 pb-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Lead selecionado
-            </p>
-
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">
-              {selectedLead.nome}
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-600">{selectedLead.empresa}</p>
-            <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-              Responsável atual: {selectedLead.responsavel}
-            </p>
-            
-          </div>
-
-          {/* Bloco de status atual */}
-          <div className="mt-6 rounded-xl bg-slate-50 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Status atual
-            </p>
-            <p className="mt-2 text-sm font-medium text-slate-900">
-              {selectedLead.status}
-            </p>
-          </div>
-
-          {/* Bloco de resumo */}
-          <div className="mt-4 rounded-xl bg-slate-50 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Resumo
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">
-              {selectedLead.resumo}
-            </p>
-          </div>
-
-          {/* Passagem de bastão clara */}
-          {activeView === "closer" && selectedLead.resumoSdr && (
-            <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-sky-700">
-                  Resumo do SDR
-                </p>
-
-                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
-                  Recebido pelo closer
-                </span>
-              </div>
-
-              <p className="mt-3 text-sm leading-6 text-slate-700">
-                {selectedLead.resumoSdr}
+          {!visibleLeads.length || !hasVisibleSelectedLead ? (
+            <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 p-6 text-center">
+              <p className="text-base font-semibold text-slate-900">
+                Nenhum lead disponível nesta visão
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Quando houver leads para este papel, o card lateral mostrará o
+                contexto e as ações rápidas.
               </p>
             </div>
-          )}
-
-          {/* 
-            Bloco dinâmico do card
-            Mostra informações diferentes para closer e SDR
-          */}
-          {activeView === "closer" ? (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Proposta
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-900">
-                  {selectedLead.valorProposta}
-                </p>
-              </div>
-
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Próxima ação
-                </p>
-                <p className="mt-2 text-sm font-medium text-slate-900">
-                  {selectedLead.proximaAcao}
-                </p>
-              </div>
-            </div>
           ) : (
-            <div className="mt-4 space-y-4">
-              {/* Indicador de prontidão do lead */}
-              <div className="rounded-xl border border-slate-200 p-4">
+            <>
+              <div className="border-b border-slate-200 pb-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Prontidão para reunião
+                  Lead em foco
                 </p>
 
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <p className="text-sm text-slate-600">
-                    Leitura rápida baseada no momento e nos dados já coletados.
-                  </p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-900">
+                  {selectedLead.nome}
+                </h2>
 
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${leadReadiness.bg} ${leadReadiness.text}`}
-                  >
-                    {leadReadiness.label}
+                <p className="mt-1 text-sm text-slate-600">
+                  {selectedLead.empresa}
+                </p>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                    Responsável: {selectedLead.responsavel}
                   </span>
                 </div>
               </div>
 
-              {/* Informações principais de qualificação */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Tipo de negócio
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-slate-900">
-                    {selectedLead.tipoNegocio}
+              <div className="mt-6 rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Situação atual
+                </p>
+                <p className="mt-2 text-sm font-medium text-slate-900">
+                  {selectedLead.status}
+                </p>
+              </div>
+
+              <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Contexto rápido
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {selectedLead.resumo}
+                </p>
+              </div>
+
+              {activeView === "closer" && selectedLead.resumoSdr && (
+                <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-sky-700">
+                      Contexto enviado pelo SDR
+                    </p>
+
+                    <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700">
+                      Recebido pelo closer
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-6 text-slate-700">
+                    {selectedLead.resumoSdr}
                   </p>
                 </div>
+              )}
 
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Faturamento
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-slate-900">
-                    {selectedLead.faturamento}
-                  </p>
+              {activeView === "closer" ? (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Proposta
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-slate-900">
+                      {selectedLead.valorProposta}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Próxima ação
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-slate-900">
+                      {selectedLead.proximaAcao}
+                    </p>
+                  </div>
                 </div>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-xl border border-slate-200 p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Prontidão para reunião
+                    </p>
 
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Objetivo principal
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-slate-900">
-                    {selectedLead.objetivo}
-                  </p>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <p className="text-sm text-slate-600">
+                        Leitura rápida baseada no momento e nos dados já coletados.
+                      </p>
+
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${leadReadiness.bg} ${leadReadiness.text}`}
+                      >
+                        {leadReadiness.label}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Tipo de negócio
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-slate-900">
+                        {selectedLead.tipoNegocio}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Faturamento
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-slate-900">
+                        {selectedLead.faturamento}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Objetivo principal
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-slate-900">
+                        {selectedLead.objetivo}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-slate-50 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Momento do lead
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-slate-900">
+                        {selectedLead.momento}
+                      </p>
+                    </div>
+                  </div>
                 </div>
+              )}
 
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Momento do lead
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-slate-900">
-                    {selectedLead.momento}
-                  </p>
+              <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Próximas ações
+                </p>
+
+                {activeView === "closer" ? (
+                  <>
+                    <div className="mt-4 grid gap-3">
+                      <button
+                        onClick={() =>
+                          updateSelectedLead({
+                            status: "Fechado",
+                            prioridade: "negociacao",
+                            proximaAcao: "Contrato fechado",
+                          })
+                        }
+                        className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
+                      >
+                        Marcar como ganho
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateSelectedLead({
+                            status: "Em negociação",
+                            prioridade: "negociacao",
+                            proximaAcao: "Aguardar retorno da proposta",
+                          })
+                        }
+                        className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
+                      >
+                        Manter em negociação
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateSelectedLead({
+                            status: "Não fechou",
+                            prioridade: "followup",
+                            proximaAcao: "Reagendar contato",
+                          })
+                        }
+                        className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                      >
+                        Marcar como não fechado
+                      </button>
+                    </div>
+
+                    <div className="mt-4 border-t border-slate-200 pt-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Registrar ação
+                      </p>
+
+                      <div className="mt-3 grid grid-cols-3 gap-3">
+                        <button
+                          onClick={() => registerAction("Mensagem enviada")}
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Mensagem
+                        </button>
+
+                        <button
+                          onClick={() => registerAction("Ligação realizada")}
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Ligação
+                        </button>
+
+                        <button
+                          onClick={() => registerAction("Reunião realizada")}
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Reunião
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 border-t border-slate-200 pt-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Agendar follow-up
+                      </p>
+
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() =>
+                            updateSelectedLead({
+                              status: "Follow-up agendado",
+                              prioridade: "followup",
+                              proximaAcao: "Follow-up amanhã",
+                            })
+                          }
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Amanhã
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            updateSelectedLead({
+                              status: "Follow-up agendado",
+                              prioridade: "followup",
+                              proximaAcao: "Follow-up em 2 dias",
+                            })
+                          }
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          2 dias
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            updateSelectedLead({
+                              status: "Follow-up agendado",
+                              prioridade: "followup",
+                              proximaAcao: "Follow-up em 7 dias",
+                            })
+                          }
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          7 dias
+                        </button>
+
+                        <button className="rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-medium text-slate-500">
+                          Definir data
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="mt-4 grid gap-3">
+                      <button
+                        onClick={transferLeadToCloser}
+                        className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700"
+                      >
+                        Passar para reunião com o closer
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateSelectedLead({
+                            status: "Em qualificação",
+                            prioridade: "negociacao",
+                            proximaAcao: "Continuar conversa com o lead",
+                          })
+                        }
+                        className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
+                      >
+                        Continuar qualificação do lead
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          updateSelectedLead({
+                            status: "Desqualificado",
+                            prioridade: "followup",
+                            proximaAcao: "Sem próxima ação",
+                          })
+                        }
+                        className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                      >
+                        Marcar como desqualificado
+                      </button>
+                    </div>
+
+                    <div className="mt-4 border-t border-slate-200 pt-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Registrar ação
+                      </p>
+
+                      <div className="mt-3 grid grid-cols-3 gap-3">
+                        <button
+                          onClick={() =>
+                            registerAction("Mensagem enviada pelo SDR")
+                          }
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Mensagem
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            registerAction("Ligação feita pelo SDR")
+                          }
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Ligação
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            registerAction("Qualificação atualizada")
+                          }
+                          className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Qualificação
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Últimas interações
+                </p>
+
+                <div className="mt-3 space-y-3">
+                  {selectedLead.historico.map((item, index) => (
+                    <div
+                      key={`${selectedLead.id}-${index}`}
+                      className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
+                    >
+                      {item}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            </>
           )}
-
-          {/* 
-            Área de ações rápidas do lead
-            Esse bloco representa o centro de decisão operacional do card
-          */}
-          <div className="mt-4 rounded-xl border border-slate-200 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Ações rápidas
-            </p>
-
-            {activeView === "closer" ? (
-              <>
-                <div className="mt-4 grid gap-3">
-                  {/* Botão para marcar lead como fechado */}
-                  <button
-                    onClick={() =>
-                      updateSelectedLead({
-                        status: "Fechado",
-                        prioridade: "negociacao",
-                        proximaAcao: "Contrato fechado",
-                      })
-                    }
-                    className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
-                  >
-                    Fechou
-                  </button>
-
-                  {/* Botão para manter lead em negociação */}
-                  <button
-                    onClick={() =>
-                      updateSelectedLead({
-                        status: "Em negociação",
-                        prioridade: "negociacao",
-                        proximaAcao: "Aguardar retorno da proposta",
-                      })
-                    }
-                    className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-amber-600"
-                  >
-                    Em negociação
-                  </button>
-
-                  {/* Botão para marcar que não fechou */}
-                  <button
-                    onClick={() =>
-                      updateSelectedLead({
-                        status: "Não fechou",
-                        prioridade: "followup",
-                        proximaAcao: "Reagendar contato",
-                      })
-                    }
-                    className="rounded-xl bg-rose-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-rose-700"
-                  >
-                    Não fechou
-                  </button>
-                </div>
-
-                {/* Linha de registro rápido de ações */}
-                <div className="mt-4 border-t border-slate-200 pt-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Registrar ação
-                  </p>
-
-                  <div className="mt-3 grid grid-cols-3 gap-3">
-                    <button
-                      onClick={() => registerAction("Mensagem enviada")}
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Mensagem
-                    </button>
-
-                    <button
-                      onClick={() => registerAction("Ligação realizada")}
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Ligação
-                    </button>
-
-                    <button
-                      onClick={() => registerAction("Reunião realizada")}
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Reunião
-                    </button>
-                  </div>
-                </div>
-
-                {/* Linha de atalhos para follow-up */}
-                <div className="mt-4 border-t border-slate-200 pt-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Agendar follow-up
-                  </p>
-
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() =>
-                        updateSelectedLead({
-                          status: "Follow-up agendado",
-                          prioridade: "followup",
-                          proximaAcao: "Follow-up amanhã",
-                        })
-                      }
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Amanhã
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        updateSelectedLead({
-                          status: "Follow-up agendado",
-                          prioridade: "followup",
-                          proximaAcao: "Follow-up em 2 dias",
-                        })
-                      }
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      2 dias
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        updateSelectedLead({
-                          status: "Follow-up agendado",
-                          prioridade: "followup",
-                          proximaAcao: "Follow-up em 7 dias",
-                        })
-                      }
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      7 dias
-                    </button>
-
-                    <button className="rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm font-medium text-slate-500">
-                      Definir data
-                    </button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="mt-4 grid gap-3">
-                  {/* Ação principal do SDR */}
-                  <button
-                    onClick={transferLeadToCloser}
-                    className="rounded-xl bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-700"
-                  >
-                    Agendar reunião com o closer
-                  </button>
-
-                  {/* Ação secundária: lead ainda precisa de mais avanço */}
-                  <button
-                    onClick={() =>
-                      updateSelectedLead({
-                        status: "Em qualificação",
-                        prioridade: "negociacao",
-                        proximaAcao: "Continuar conversa com o lead",
-                      })
-                    }
-                    className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
-                  >
-                    Continuar qualificação
-                  </button>
-
-                  {/* Ação de saída do fluxo */}
-                  <button
-                    onClick={() =>
-                      updateSelectedLead({
-                        status: "Desqualificado",
-                        prioridade: "followup",
-                        proximaAcao: "Sem próxima ação",
-                      })
-                    }
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
-                  >
-                    Desqualificar lead
-                  </button>
-                </div>
-
-                <div className="mt-4 border-t border-slate-200 pt-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Registrar ação
-                  </p>
-
-                  <div className="mt-3 grid grid-cols-3 gap-3">
-                    <button
-                      onClick={() => registerAction("Mensagem enviada pelo SDR")}
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Mensagem
-                    </button>
-
-                    <button
-                      onClick={() => registerAction("Ligação feita pelo SDR")}
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Ligação
-                    </button>
-
-                    <button
-                      onClick={() => registerAction("Qualificação atualizada")}
-                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Qualificação
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Histórico simples do lead */}
-          <div className="mt-4 rounded-xl bg-slate-50 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Histórico
-            </p>
-
-            <div className="mt-3 space-y-3">
-              {selectedLead.historico.map((item, index) => (
-                <div
-                  key={`${selectedLead.id}-${index}`}
-                  className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
         </aside>
       </div>
     </main>

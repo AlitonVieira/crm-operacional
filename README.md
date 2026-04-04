@@ -69,12 +69,12 @@ O desenvolvimento será dividido em etapas:
 * tela principal com fila de leads ✅
 * card do lead com ações básicas ✅
 * controle de próxima ação ✅
-* fluxo SDR → closer
+* fluxo SDR → closer ✅
 * histórico simples ✅
 
 ### 🔹 Fase 2
 
-* filtros
+* filtros ✅
 * agenda
 * melhorias de usabilidade
 * customização básica
