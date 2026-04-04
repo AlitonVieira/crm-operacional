@@ -33,7 +33,7 @@ export function getPriorityStyles(prioridade: LeadPriority) {
 
 // Leitura simples de prontidão para o card do SDR
 export function getLeadReadiness(lead: Lead): LeadReadiness {
-  if (lead.momento === "Agora" && lead.faturamento !== "Ainda não enviada") {
+  if (lead.qualificacao.momento === "Agora" && lead.qualificacao.faturamento !== "Ainda não enviada") {
     return {
       label: "Alto potencial",
       bg: "bg-emerald-100",
@@ -41,7 +41,7 @@ export function getLeadReadiness(lead: Lead): LeadReadiness {
     };
   }
 
-  if (lead.momento === "Em breve") {
+  if (lead.qualificacao.momento === "Em breve") {
     return {
       label: "Médio potencial",
       bg: "bg-amber-100",

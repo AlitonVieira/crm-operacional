@@ -35,6 +35,8 @@ export default function Home() {
   // Isso ajuda o usuário a perceber quando uma transferência foi concluída
   const [transferMessage, setTransferMessage] = useState("");
 
+  
+
   // Função responsável por atualizar o lead selecionado
   // Ela altera a lista da fila e também o conteúdo exibido no card lateral
   function updateSelectedLead(data: LeadUpdateData) {
@@ -72,7 +74,7 @@ export default function Home() {
       prioridade: "critica",
       proximaAcao: "Lead transferido para o closer",
       responsavel: "closer",
-      resumoSdr: `${selectedLead.tipoNegocio}, fatura ${selectedLead.faturamento}, quer ${selectedLead.objetivo.toLowerCase()} e está no momento: ${selectedLead.momento.toLowerCase()}.`,
+      resumoSdr: `${selectedLead.qualificacao.tipoNegocio}, fatura ${selectedLead.qualificacao.faturamento}, quer ${selectedLead.qualificacao.objetivo.toLowerCase()} e está no momento: ${selectedLead.qualificacao.momento.toLowerCase()}.`,
       historico: [
         "SDR agendou reunião e transferiu o lead para o closer",
         ...selectedLead.historico,
@@ -532,7 +534,7 @@ const {
                         Tipo de negócio
                       </p>
                       <p className="mt-2 text-sm font-medium text-slate-900">
-                        {selectedLead.tipoNegocio}
+                        {selectedLead.qualificacao.tipoNegocio}
                       </p>
                     </div>
 
@@ -541,7 +543,7 @@ const {
                         Faturamento
                       </p>
                       <p className="mt-2 text-sm font-medium text-slate-900">
-                        {selectedLead.faturamento}
+                        {selectedLead.qualificacao.faturamento}
                       </p>
                     </div>
 
@@ -550,7 +552,7 @@ const {
                         Objetivo principal
                       </p>
                       <p className="mt-2 text-sm font-medium text-slate-900">
-                        {selectedLead.objetivo}
+                        {selectedLead.qualificacao.objetivo}
                       </p>
                     </div>
 
@@ -559,7 +561,7 @@ const {
                         Momento do lead
                       </p>
                       <p className="mt-2 text-sm font-medium text-slate-900">
-                        {selectedLead.momento}
+                        {selectedLead.qualificacao.momento}
                       </p>
                     </div>
                   </div>

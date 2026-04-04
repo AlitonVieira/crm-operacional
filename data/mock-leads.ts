@@ -11,13 +11,15 @@ export const mockLeads: Lead[] = [
     prioridade: "critica",
     proximaAcao: "Realizar reunião às 10:00",
     valorProposta: "R$ 2.500",
-    tipoNegocio: "Clínica estética",
-    faturamento: "R$ 80k/mês",
-    objetivo: "Aumentar geração de leads",
-    momento: "Agora",
     responsavel: "closer",
     resumoSdr:
       "Clínica estética, fatura cerca de R$ 80k/mês, quer aumentar leads e demonstrou urgência para começar agora.",
+    qualificacao: {
+      tipoNegocio: "Clínica estética",
+      faturamento: "R$ 80k/mês",
+      objetivo: "Aumentar geração de leads",
+      momento: "Agora",
+    },
     historico: [
       "Lead entrou pelo formulário",
       "SDR fez o primeiro contato",
@@ -33,13 +35,15 @@ export const mockLeads: Lead[] = [
     prioridade: "critica",
     proximaAcao: "Entrar em contato hoje",
     valorProposta: "R$ 3.000",
-    tipoNegocio: "Agência de marketing",
-    faturamento: "R$ 50k/mês",
-    objetivo: "Melhorar previsibilidade comercial",
-    momento: "Em breve",
     responsavel: "closer",
     resumoSdr:
       "Agência de marketing com faturamento em torno de R$ 50k/mês, busca previsibilidade comercial e demonstrou interesse em avançar em breve.",
+    qualificacao: {
+      tipoNegocio: "Agência de marketing",
+      faturamento: "R$ 50k/mês",
+      objetivo: "Melhorar previsibilidade comercial",
+      momento: "Em breve",
+    },
     historico: [
       "Lead respondeu com interesse",
       "Reunião agendada",
@@ -55,13 +59,15 @@ export const mockLeads: Lead[] = [
     prioridade: "negociacao",
     proximaAcao: "Follow-up em 2 dias",
     valorProposta: "R$ 3.000",
-    tipoNegocio: "Estúdio de arquitetura",
-    faturamento: "R$ 35k/mês",
-    objetivo: "Gerar mais oportunidades qualificadas",
-    momento: "Agora",
     responsavel: "closer",
     resumoSdr:
       "Estúdio de arquitetura, faturamento aproximado de R$ 35k/mês, quer gerar mais oportunidades qualificadas e já avançou para negociação.",
+    qualificacao: {
+      tipoNegocio: "Estúdio de arquitetura",
+      faturamento: "R$ 35k/mês",
+      objetivo: "Gerar mais oportunidades qualificadas",
+      momento: "Agora",
+    },
     historico: [
       "Lead qualificado pelo SDR",
       "Reunião realizada",
@@ -77,13 +83,15 @@ export const mockLeads: Lead[] = [
     prioridade: "followup",
     proximaAcao: "Falar com a lead hoje às 15:00",
     valorProposta: "Ainda não enviada",
-    tipoNegocio: "Clínica odontológica",
-    faturamento: "R$ 60k/mês",
-    objetivo: "Atrair mais pacientes particulares",
-    momento: "Só pesquisando",
     responsavel: "sdr",
     resumoSdr:
       "Clínica odontológica com faturamento em torno de R$ 60k/mês, interesse inicial em atrair mais pacientes particulares, ainda em fase de pesquisa.",
+    qualificacao: {
+      tipoNegocio: "Clínica odontológica",
+      faturamento: "R$ 60k/mês",
+      objetivo: "Atrair mais pacientes particulares",
+      momento: "Só pesquisando",
+    },
     historico: [
       "Lead entrou pelo Instagram",
       "SDR fez contato inicial",
