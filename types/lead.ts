@@ -1,21 +1,18 @@
-// Tipos centrais do domínio de leads
+import type { LeadQualification } from "@/types/lead-qualification";
 
-// Prioridades possíveis dentro da fila
+// Prioridades da fila
 export type LeadPriority = "critica" | "negociacao" | "followup";
 
-// Visões possíveis da tela principal
+// Visões da tela principal
 export type LeadView = "closer" | "sdr";
 
-// Filtros disponíveis na fila
+// Filtros da fila
 export type LeadFilter = "todos" | "critica" | "negociacao" | "followup";
 
-// Responsável atual pelo lead
+// Responsável atual
 export type LeadOwner = "closer" | "sdr";
 
-// Momento percebido do lead durante a qualificação
-export type LeadMoment = "Agora" | "Em breve" | "Só pesquisando";
-
-// Status do lead no MVP atual
+// Status usados no MVP atual
 export type LeadStatus =
   | "Reunião hoje"
   | "No-show"
@@ -29,7 +26,7 @@ export type LeadStatus =
   | "Não fechou"
   | "Follow-up agendado";
 
-// Estrutura principal do lead no domínio atual do MVP
+// Entidade principal do lead no MVP
 export interface Lead {
   id: number;
   nome: string;
@@ -45,7 +42,7 @@ export interface Lead {
   qualificacao: LeadQualification;
 }
 
-// Estrutura usada para atualizar parcialmente um lead
+// Atualização parcial de lead
 export interface LeadUpdateData {
   status?: LeadStatus;
   prioridade?: LeadPriority;
@@ -56,12 +53,9 @@ export interface LeadUpdateData {
   qualificacao?: LeadQualification;
 }
 
-// Estrutura visual de prontidão usada no card do SDR
+// Leitura visual do card SDR
 export interface LeadReadiness {
   label: string;
   bg: string;
   text: string;
 }
-
-// Importação de tipo para evitar duplicação conceitual
-import type { LeadQualification } from "@/types/lead-qualification";

@@ -11,34 +11,24 @@ import {
   groupLeadsByPriority,
 } from "@/lib/leads";
 
-
-
-// Componente principal da página inicial do sistema
+// Página principal do CRM
 export default function Home() {
-  // Estado responsável pela lista de leads exibida na fila
-  // Isso permite atualizar status e próximas ações sem recarregar a página
+  // Lista atual de leads
   const [leadList, setLeadList] = useState<Lead[]>(mockLeads);
 
-  // Estado responsável por guardar qual lead está selecionado na fila
-  // Começamos com o primeiro lead já selecionado para evitar painel vazio
+  // Lead atualmente em foco
   const [selectedLead, setSelectedLead] = useState<Lead>(mockLeads[0]);
 
-  // Estado responsável por controlar qual filtro está ativo na fila
-  // Isso permite que o usuário veja apenas o grupo que deseja no momento
+  // Filtro visível na fila
   const [activeFilter, setActiveFilter] = useState<LeadFilter>("todos");
 
-  // Estado responsável por alternar entre a visão do closer e a visão do SDR
-  // Isso ajuda a validar dois fluxos do produto sem criar outra página agora
+  // Visão ativa da tela
   const [activeView, setActiveView] = useState<LeadView>("closer");
 
-  // Estado responsável por mostrar uma mensagem temporária de feedback
-  // Isso ajuda o usuário a perceber quando uma transferência foi concluída
+  // Feedback temporário
   const [transferMessage, setTransferMessage] = useState("");
 
-  
-
-  // Função responsável por atualizar o lead selecionado
-  // Ela altera a lista da fila e também o conteúdo exibido no card lateral
+  // Atualiza lead selecionado
   function updateSelectedLead(data: LeadUpdateData) {
     const updatedLead: Lead = {
       ...selectedLead,
@@ -54,8 +44,7 @@ export default function Home() {
     );
   }
 
-  // Função responsável por registrar uma nova ação no histórico do lead
-  // A nova ação é adicionada no topo da lista para aparecer primeiro no card
+  // Registra ação simples no histórico
   function registerAction(actionLabel: string) {
     const updatedHistory = [actionLabel, ...selectedLead.historico];
 
@@ -64,9 +53,7 @@ export default function Home() {
     });
   }
 
-
-  // Função responsável por transferir o lead do SDR para o closer
-  // Ela muda o responsável, gera resumo e exibe um feedback visual de sucesso
+  // Passa lead do SDR para o closer
   function transferLeadToCloser() {
     const updatedLead: Lead = {
       ...selectedLead,
@@ -90,29 +77,29 @@ export default function Home() {
     );
 
     setActiveView("closer");
-
     setTransferMessage(
       `Lead ${selectedLead.nome} transferido com sucesso para o closer.`
     );
   }
 
-//Separando leads de Closer e de SDR  
-const { closerLeads, sdrLeads } = groupLeadsByOwner(leadList);
+  // Grupos por responsável
+  const { closerLeads, sdrLeads } = groupLeadsByOwner(leadList);
 
-const {
-  criticalLeads,
-  negotiationLeads,
-  followUpLeads,
-} = groupLeadsByPriority(closerLeads);
+  // Grupos do closer
+  const {
+    criticalLeads,
+    negotiationLeads,
+    followUpLeads,
+  } = groupLeadsByPriority(closerLeads);
 
-const {
-  criticalLeads: repliedLeads,
-  negotiationLeads: qualificationLeads,
-  followUpLeads: waitingResponseLeads,
-} = groupLeadsByPriority(sdrLeads);
+  // Grupos do SDR
+  const {
+    criticalLeads: repliedLeads,
+    negotiationLeads: qualificationLeads,
+    followUpLeads: waitingResponseLeads,
+  } = groupLeadsByPriority(sdrLeads);
 
-  // Contadores resumidos para o topo da tela
-  // Eles ajudam a dar visão rápida do dia sem poluir a interface
+  // Resumo do topo
   const closerSummary = [
     { label: "Críticos", value: criticalLeads.length },
     { label: "Negociação", value: negotiationLeads.length },
@@ -125,23 +112,22 @@ const {
     { label: "Aguardando resposta", value: waitingResponseLeads.length },
   ];
 
-  // Resultado visual da prontidão do lead selecionado
+  // Leitura visual do lead
   const leadReadiness = getLeadReadiness(selectedLead);
 
-  // Lista de leads atualmente visível de acordo com a visão ativa
-  // Isso ajuda a manter o card lateral coerente com a fila mostrada na tela
+  // Leads visíveis conforme a visão
   const visibleLeads = getVisibleLeadsByView(
-  activeView,
-  closerLeads,
-  sdrLeads
-);
+    activeView,
+    closerLeads,
+    sdrLeads
+  );
 
-  // Verifica se existe um lead selecionado válido dentro da visão atual
+  // Confirma se o lead selecionado ainda faz sentido
   const hasVisibleSelectedLead = visibleLeads.some(
     (lead) => lead.id === selectedLead.id
   );
 
-  // Efeito responsável por limpar a mensagem de transferência após alguns segundos
+  // Limpa mensagem temporária
   useEffect(() => {
     if (!transferMessage) return;
 
@@ -152,8 +138,7 @@ const {
     return () => clearTimeout(timer);
   }, [transferMessage]);
 
-  // Mantém o lead selecionado coerente com a visão ativa
-  // Se o lead atual não existir na fila visível, o sistema seleciona o primeiro disponível
+  // Mantém seleção coerente com a visão atual
   useEffect(() => {
     if (visibleLeads.length === 0) {
       return;
@@ -168,8 +153,7 @@ const {
     }
   }, [activeView, visibleLeads, selectedLead.id]);
 
-  // Função responsável por renderizar uma seção da fila
-  // Ela recebe o título da seção, a descrição e a lista de leads daquele grupo
+  // Renderiza seção da fila
   function renderLeadSection(
     title: string,
     description: string,

@@ -1,6 +1,6 @@
 import type { Lead, LeadPriority, LeadReadiness, LeadView } from "@/types/lead";
 
-// Estilos visuais por prioridade da fila
+// Estilo visual por prioridade
 export function getPriorityStyles(prioridade: LeadPriority) {
   if (prioridade === "critica") {
     return {
@@ -31,9 +31,12 @@ export function getPriorityStyles(prioridade: LeadPriority) {
   };
 }
 
-// Leitura simples de prontidão para o card do SDR
+// Leitura simples para o card do SDR
 export function getLeadReadiness(lead: Lead): LeadReadiness {
-  if (lead.qualificacao.momento === "Agora" && lead.qualificacao.faturamento !== "Ainda não enviada") {
+  if (
+    lead.qualificacao.momento === "Agora" &&
+    lead.qualificacao.faturamento !== "Ainda não enviada"
+  ) {
     return {
       label: "Alto potencial",
       bg: "bg-emerald-100",
@@ -82,7 +85,7 @@ export function groupLeadsByPriority(leadList: Lead[]) {
   };
 }
 
-// Retorna os leads visíveis conforme a visão atual
+// Retorna os leads visíveis da visão ativa
 export function getVisibleLeadsByView(
   activeView: LeadView,
   closerLeads: Lead[],
