@@ -1,148 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type {
-  Lead,
-  LeadFilter,
-  LeadReadiness,
-  LeadUpdateData,
-  LeadView,
-} from "@/types/lead";
+import type { Lead, LeadFilter, LeadUpdateData, LeadView } from "@/types/lead";
+import { mockLeads } from "@/data/mock-leads";
+import {
+  getLeadReadiness,
+  getPriorityStyles,
+  getVisibleLeadsByView,
+  groupLeadsByOwner,
+  groupLeadsByPriority,
+} from "@/lib/leads";
 
-// Lista temporária de leads para montar a interface inicial da fila
-// Neste momento estamos usando dados mockados para visualizar o produto
-const leads: Lead[] = [
-  {
-    id: 1,
-    nome: "João Silva",
-    empresa: "Clínica Vida",
-    status: "Reunião hoje",
-    resumo: "Quer aumentar o volume de leads e está sensível a preço.",
-    prioridade: "critica",
-    proximaAcao: "Realizar reunião às 10:00",
-    valorProposta: "R$ 2.500",
-    tipoNegocio: "Clínica estética",
-    faturamento: "R$ 80k/mês",
-    objetivo: "Aumentar geração de leads",
-    momento: "Agora",
-    responsavel: "closer",
-    resumoSdr:
-      "Clínica estética, fatura cerca de R$ 80k/mês, quer aumentar leads e demonstrou urgência para começar agora.",
-    historico: [
-      "Lead entrou pelo formulário",
-      "SDR fez o primeiro contato",
-      "Reunião agendada para hoje",
-    ],
-  },
-  {
-    id: 2,
-    nome: "Marina Costa",
-    empresa: "Agência Prisma",
-    status: "No-show",
-    resumo: "Não compareceu na reunião e precisa de contato no mesmo dia.",
-    prioridade: "critica",
-    proximaAcao: "Entrar em contato hoje",
-    valorProposta: "R$ 3.000",
-    tipoNegocio: "Agência de marketing",
-    faturamento: "R$ 50k/mês",
-    objetivo: "Melhorar previsibilidade comercial",
-    momento: "Em breve",
-    responsavel: "closer",
-    resumoSdr:
-      "Agência de marketing com faturamento em torno de R$ 50k/mês, busca previsibilidade comercial e demonstrou interesse em avançar em breve.",
-    historico: [
-      "Lead respondeu com interesse",
-      "Reunião agendada",
-      "Lead não compareceu",
-    ],
-  },
-  {
-    id: 3,
-    nome: "Carlos Souza",
-    empresa: "Studio Forma",
-    status: "Negociação",
-    resumo: "Recebeu proposta de R$ 3.000 e ficou de responder.",
-    prioridade: "negociacao",
-    proximaAcao: "Follow-up em 2 dias",
-    valorProposta: "R$ 3.000",
-    tipoNegocio: "Estúdio de arquitetura",
-    faturamento: "R$ 35k/mês",
-    objetivo: "Gerar mais oportunidades qualificadas",
-    momento: "Agora",
-    responsavel: "closer",
-    resumoSdr:
-      "Estúdio de arquitetura, faturamento aproximado de R$ 35k/mês, quer gerar mais oportunidades qualificadas e já avançou para negociação.",
-    historico: [
-      "Lead qualificado pelo SDR",
-      "Reunião realizada",
-      "Proposta enviada",
-    ],
-  },
-  {
-    id: 4,
-    nome: "Fernanda Alves",
-    empresa: "Odonto Prime",
-    status: "Follow-up hoje",
-    resumo: "Demonstrou interesse, mas está há 2 dias sem interação.",
-    prioridade: "followup",
-    proximaAcao: "Falar com a lead hoje às 15:00",
-    valorProposta: "Ainda não enviada",
-    tipoNegocio: "Clínica odontológica",
-    faturamento: "R$ 60k/mês",
-    objetivo: "Atrair mais pacientes particulares",
-    momento: "Só pesquisando",
-    responsavel: "sdr",
-    resumoSdr:
-      "Clínica odontológica com faturamento em torno de R$ 60k/mês, interesse inicial em atrair mais pacientes particulares, ainda em fase de pesquisa.",
-    historico: [
-      "Lead entrou pelo Instagram",
-      "SDR fez contato inicial",
-      "Lead pediu mais informações",
-    ],
-  },
-];
 
-// Função responsável por definir o estilo visual de cada prioridade
-// Isso evita repetição de classes e deixa a intenção mais clara no código
-function getPriorityStyles(prioridade: string) {
-  if (prioridade === "critica") {
-    return {
-      borda: "border-red-200",
-      fundoStatus: "bg-red-100",
-      textoStatus: "text-red-700",
-      barra: "bg-red-500",
-      label: "Crítico",
-    };
-  }
-
-  if (prioridade === "negociacao") {
-    return {
-      borda: "border-amber-200",
-      fundoStatus: "bg-amber-100",
-      textoStatus: "text-amber-700",
-      barra: "bg-amber-500",
-      label: "Negociação",
-    };
-  }
-
-  return {
-    borda: "border-sky-200",
-    fundoStatus: "bg-sky-100",
-    textoStatus: "text-sky-700",
-    barra: "bg-sky-500",
-    label: "Follow-up",
-  };
-}
 
 // Componente principal da página inicial do sistema
 export default function Home() {
   // Estado responsável pela lista de leads exibida na fila
   // Isso permite atualizar status e próximas ações sem recarregar a página
-  const [leadList, setLeadList] = useState<Lead[]>(leads);
+  const [leadList, setLeadList] = useState<Lead[]>(mockLeads);
 
   // Estado responsável por guardar qual lead está selecionado na fila
   // Começamos com o primeiro lead já selecionado para evitar painel vazio
-  const [selectedLead, setSelectedLead] = useState<Lead>(leads[0]);
+  const [selectedLead, setSelectedLead] = useState<Lead>(mockLeads[0]);
 
   // Estado responsável por controlar qual filtro está ativo na fila
   // Isso permite que o usuário veja apenas o grupo que deseja no momento
@@ -183,34 +62,6 @@ export default function Home() {
     });
   }
 
-  // Função responsável por gerar uma leitura simples de prontidão do lead
-  // Isso ajuda o SDR a entender rapidamente se o lead parece pronto para avançar
-  function getLeadReadiness(): LeadReadiness {
-    if (
-      selectedLead.momento === "Agora" &&
-      selectedLead.faturamento !== "Ainda não enviada"
-    ) {
-      return {
-        label: "Alto potencial",
-        bg: "bg-emerald-100",
-        text: "text-emerald-700",
-      };
-    }
-
-    if (selectedLead.momento === "Em breve") {
-      return {
-        label: "Médio potencial",
-        bg: "bg-amber-100",
-        text: "text-amber-700",
-      };
-    }
-
-    return {
-      label: "Em observação",
-      bg: "bg-slate-100",
-      text: "text-slate-700",
-    };
-  }
 
   // Função responsável por transferir o lead do SDR para o closer
   // Ela muda o responsável, gera resumo e exibe um feedback visual de sucesso
@@ -243,27 +94,20 @@ export default function Home() {
     );
   }
 
-  // Leads que pertencem ao closer
-  const closerLeads = leadList.filter((lead) => lead.responsavel === "closer");
+//Separando leads de Closer e de SDR  
+const { closerLeads, sdrLeads } = groupLeadsByOwner(leadList);
 
-  // Leads que pertencem ao SDR
-  const sdrLeads = leadList.filter((lead) => lead.responsavel === "sdr");
+const {
+  criticalLeads,
+  negotiationLeads,
+  followUpLeads,
+} = groupLeadsByPriority(closerLeads);
 
-  // Agrupamento da visão do closer
-  const criticalLeads = closerLeads.filter((lead) => lead.prioridade === "critica");
-  const negotiationLeads = closerLeads.filter(
-    (lead) => lead.prioridade === "negociacao"
-  );
-  const followUpLeads = closerLeads.filter((lead) => lead.prioridade === "followup");
-
-  // Agrupamento da visão do SDR
-  const repliedLeads = sdrLeads.filter((lead) => lead.prioridade === "critica");
-  const qualificationLeads = sdrLeads.filter(
-    (lead) => lead.prioridade === "negociacao"
-  );
-  const waitingResponseLeads = sdrLeads.filter(
-    (lead) => lead.prioridade === "followup"
-  );
+const {
+  criticalLeads: repliedLeads,
+  negotiationLeads: qualificationLeads,
+  followUpLeads: waitingResponseLeads,
+} = groupLeadsByPriority(sdrLeads);
 
   // Contadores resumidos para o topo da tela
   // Eles ajudam a dar visão rápida do dia sem poluir a interface
@@ -280,11 +124,15 @@ export default function Home() {
   ];
 
   // Resultado visual da prontidão do lead selecionado
-  const leadReadiness = getLeadReadiness();
+  const leadReadiness = getLeadReadiness(selectedLead);
 
   // Lista de leads atualmente visível de acordo com a visão ativa
   // Isso ajuda a manter o card lateral coerente com a fila mostrada na tela
-  const visibleLeads = activeView === "closer" ? closerLeads : sdrLeads;
+  const visibleLeads = getVisibleLeadsByView(
+  activeView,
+  closerLeads,
+  sdrLeads
+);
 
   // Verifica se existe um lead selecionado válido dentro da visão atual
   const hasVisibleSelectedLead = visibleLeads.some(
